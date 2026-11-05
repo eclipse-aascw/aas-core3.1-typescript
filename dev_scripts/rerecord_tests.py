@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 aas-core3.1-typescript AUTHORS
+#
+# SPDX-License-Identifier: MIT
+
 """Run all tests and re-record the golden data."""
 
 import argparse

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 aas-core3.1-typescript AUTHORS
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * Test XML de/serialization of concrete classes.
  */
