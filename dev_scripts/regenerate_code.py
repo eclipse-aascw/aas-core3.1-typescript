@@ -47,6 +47,103 @@ def _add_license_headers(generated_dir: pathlib.Path) -> None:
         path.write_text(_prepend_license_header(text), encoding="utf-8")
 
 
+# NOTE (aaronzi, 2026-11-05):
+# The base64 helpers in ``src/common.ts`` have been adapted from base64-arraybuffer
+# by Niklas von Hertzen (MIT). The pinned aas-core-codegen does not mark them with
+# REUSE snippet tags yet, so we add the tags and the attribution here.
+#
+# We replace the old generated text only if it is there. If the new text is already
+# there (e.g., once aas-core-codegen emits the tags itself), we leave the file as is.
+# If neither is found, we fail so that the attribution is never silently lost.
+#
+# REUSE-IgnoreStart
+_BASE64_OLD_NOTE = (
+    r"  // NOTE \(mristin(?:, \d{4}-\d{2}-\d{2})?\):\n"
+    r"  // This implementation is vaguely based on:\n"
+    r"  // https://github\.com/danguer/blog-examples/blob/master/js/base64-binary\.js,\n"
+    r"  // https://github\.com/niklasvh/base64-arraybuffer/blob/master/src/index\.ts and\n"
+    r"  // https://github\.com/beatgammit/base64-js/blob/master/index\.js\.\n"
+)
+
+_BASE64_ENCODE_SIGNATURE = "export function base64Encode(bytes: Uint8Array): string {\n"
+
+_BASE64_DECODE_SIGNATURE = (
+    "export function base64Decode(text: string): Either<Uint8Array, string> {\n"
+)
+
+_BASE64_SNIPPET_REPLACEMENTS = [
+    (
+        "snippet begin",
+        re.compile(r"^const BASE64_CHARS = ", re.MULTILINE),
+        """\
+// SPDX-SnippetBegin
+// SPDX-SnippetCopyrightText: 2012 Niklas von Hertzen
+// SPDX-License-Identifier: MIT
+//
+// The base64 character table, the lookup table and the functions base64Encode and
+// base64Decode below have been adapted from base64-arraybuffer by Niklas von Hertzen.
+// The original source code is available at:
+// https://github.com/niklasvh/base64-arraybuffer/blob/master/src/index.ts
+const BASE64_CHARS = """,
+    ),
+    (
+        "note in base64Encode",
+        re.compile(re.escape(_BASE64_ENCODE_SIGNATURE) + _BASE64_OLD_NOTE),
+        _BASE64_ENCODE_SIGNATURE
+        + """\
+  // NOTE (mristin):
+  // This implementation has been adapted from the encode function of
+  // base64-arraybuffer, see the snippet header above.
+""",
+    ),
+    (
+        "note in base64Decode",
+        re.compile(re.escape(_BASE64_DECODE_SIGNATURE) + _BASE64_OLD_NOTE),
+        _BASE64_DECODE_SIGNATURE
+        + """\
+  // NOTE (mristin):
+  // This implementation has been adapted from the decode function of
+  // base64-arraybuffer and extended with input validation, see the snippet header
+  // above.
+""",
+    ),
+]
+
+_BASE64_SNIPPET_END = "// SPDX-SnippetEnd\n"
+# REUSE-IgnoreEnd
+
+
+def _add_base64_snippet_tags(text: str) -> str:
+    """Mark the base64 code in ``common.ts`` adapted from base64-arraybuffer."""
+    for what, old_re, new in _BASE64_SNIPPET_REPLACEMENTS:
+        if new in text:
+            continue
+
+        matches = list(old_re.finditer(text))
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"Expected either the new base64 {what} or exactly one occurrence "
+                f"of the old one in common.ts, but found {len(matches)} occurrence(s) "
+                f"of the old one; please update dev_scripts/regenerate_code.py"
+            )
+        text = text[: matches[0].start()] + new + text[matches[0].end() :]
+
+    # NOTE (aaronzi, 2026-11-05):
+    # The snippet ends right after the closing brace of base64Decode.
+    decode_start = text.find(_BASE64_DECODE_SIGNATURE)
+    decode_end = -1 if decode_start < 0 else text.find("\n}\n", decode_start)
+    if decode_end < 0:
+        raise RuntimeError(
+            "Could not find the end of base64Decode in common.ts to place "
+            "the base64 snippet end; please update dev_scripts/regenerate_code.py"
+        )
+    decode_end += len("\n}\n")
+    if not text.startswith(_BASE64_SNIPPET_END, decode_end):
+        text = text[:decode_end] + _BASE64_SNIPPET_END + text[decode_end:]
+
+    return text
+
+
 def main() -> int:
     """Execute the main routine."""
     repo_root = pathlib.Path(os.path.realpath(__file__)).parent.parent
@@ -100,6 +197,12 @@ def main() -> int:
                 "typescript",
             ],
             check=True,
+        )
+
+        common_ts = generated_dir / "src" / "common.ts"
+        common_ts.write_text(
+            _add_base64_snippet_tags(common_ts.read_text(encoding="utf-8")),
+            encoding="utf-8",
         )
 
         _add_license_headers(generated_dir)
