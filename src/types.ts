@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 aas-core3.1-typescript AUTHORS
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * --- WORK IN PROGRESS ---
  * Provide an implementation of the Asset Administration Shell (AAS) V3.1.

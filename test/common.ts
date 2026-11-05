@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 aas-core3.1-typescript AUTHORS
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * Provide common functionality to be re-used across different tests
  * such as reading of commonly-used environment variables.

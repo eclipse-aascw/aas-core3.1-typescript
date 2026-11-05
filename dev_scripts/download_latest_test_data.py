@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 aas-core3.1-typescript AUTHORS
+#
+# SPDX-License-Identifier: MIT
+
 """Download the latest test data released on aas-core-testdatagen."""
 
 import argparse
